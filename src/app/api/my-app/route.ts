@@ -10,8 +10,8 @@ export async function GET(req: NextRequest) {
     const serverUrl = `${protocol}://${host}`;
 
     const metadata: Metadata = {
-      url: 'https://stepwise.vercel.app',
-      icon: 'blob:https://mega.nz/e2f2e01b-09cd-4f8c-9cf4-05d37b7640ac',
+      url: 'https://stepwise-sand.vercel.app',
+      icon: 'https://raw.githubusercontent.com/raptor0929/stepwise/refs/heads/main/public/stepwise.webp',
       title: 'StepWise',
       baseUrl: serverUrl,
       description:
