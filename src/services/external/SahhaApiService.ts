@@ -1,8 +1,8 @@
 import { ActivityLog, UserActivityData } from '@/types/activity';
 
 export class SahhaApiService {
-    private static readonly BASE_URL = 'https://sandbox-api.sahha.ai/api/v1';
-    private static readonly AUTH_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwczovL2FwaS5zYWhoYS5haS9jbGFpbXMvYWNjb3VudElkIjoiZmZmNmExMDMtMzk1Mi00MDViLTg5YzEtOTVlM2ExN2VmZTVhIiwiaHR0cHM6Ly9hcGkuc2FoaGEuYWkvY2xhaW1zL2FkbWluIjoiVHJ1ZSIsImh0dHBzOi8vYXBpLnNhaGhhLmFpL2NsYWltcy9hY2NvdW50IjoiVHJ1ZSIsImh0dHBzOi8vYXBpLnNhaGhhLmFpL2NsYWltcy9zYWhoYUFwaVNjb3BlIjoic2FuZGJveCIsImh0dHBzOi8vYXBpLnNhaGhhLmFpL2NsYWltcy9yZWdpb24iOiJVUyIsImV4cCI6MTc1MTU3MjAxNywiaXNzIjoiaHR0cHM6Ly9zYWhoYS1wcm9kdWN0aW9uLmF1LmF1dGgwLmNvbS8iLCJhdWQiOiJodHRwczovL3NhaGhhLXByb2R1Y3Rpb24uYXUuYXV0aDAuY29tL2FwaS92Mi8ifQ.g5nmM7MJv1om8QeW-SxepnWoU8rWmEewCd5PiF0LZ5A';
+    private static readonly BASE_URL = process.env.SAHHA_API_URL;
+    private static readonly AUTH_TOKEN = process.env.SAHHA_AUTH_TOKEN;
 
     /**
      * Fetch activity logs for a specific user within a date range
