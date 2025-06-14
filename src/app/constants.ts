@@ -1,1 +1,1 @@
-export const STEP_GOAL_THRESHOLD = 1400;
+export const STEP_GOAL_THRESHOLD = Number(process.env.STEP_GOAL_THRESHOLD) || 10000;

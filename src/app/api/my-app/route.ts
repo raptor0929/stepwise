@@ -4,8 +4,16 @@ import { createMetadata, Metadata, ValidatedMetadata, ExecutionResponse } from '
 import { serialize } from 'wagmi';
 import { encodeFunctionData, TransactionSerializable, parseEther } from 'viem';
 import { abi } from '@/blockchain/abi';
+import { createClient } from '@supabase/supabase-js';
+import { sahhaIdToBytes32 } from '@/app/helpers';
 
-const CONTRACT_ADDRESS = '0x8590bD18FdB00F62c644c3a4288d1Dceb41eaE41';
+const CONTRACT_ADDRESS = '0x8c33f948a74bfB736bc6De6bE83c1d2113F9BA88';
+
+// Setup Supabase client
+const supabase = createClient(
+  process.env.SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 export async function GET(req: NextRequest) {
   try {
@@ -23,44 +31,26 @@ export async function GET(req: NextRequest) {
       actions: [
         {
           type: 'dynamic',
-          label: 'StepWise Challenge',
+          label: 'Join StepWise Challenge',
           description:
             'Lock your funds for a week and start earning rewards if you improve your step count',
           chains: { source: 'fuji' },
           path: `/api/my-app`,
           params: [
             {
-              name: 'action',
-              label: 'Action',
-              type: 'select',
+              name: 'sahhaId',
+              label: 'Sahha ID',
+              type: 'text',
               required: true,
-              description: 'Choose your action',
-              options: [
-                { label: 'Join Challenge', value: 'joinChallenge' },
-                { label: 'Distribute Rewards', value: 'distributeRewards' }
-              ]
+              description: 'Sahha ID',
             },
             {
               name: 'depositAmount',
               label: 'Deposit Amount (AVAX)',
               type: 'text',
-              required: false,
+              required: true,
               description: 'Amount to deposit (only for joining challenge)',
-            },
-            {
-              name: 'challengeId',
-              label: 'Challenge ID',
-              type: 'text',
-              required: false,
-              description: 'Challenge ID (only for distributing rewards)',
-            },
-            {
-              name: 'winners',
-              label: 'Winners (comma separated)',
-              type: 'text',
-              required: false,
-              description: 'Comma-separated list of winner addresses',
-            },
+            }
           ],
         },
       ],
@@ -82,14 +72,12 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-    const action = searchParams.get('action');
     const depositAmount = searchParams.get('depositAmount');
-    const challengeId = searchParams.get('challengeId');
-    const winnersParam = searchParams.get('winners');
+    const sahhaId = searchParams.get('sahhaId');
 
-    if (!action) {
+    if (!sahhaId || !depositAmount) {
       return NextResponse.json(
-        { error: 'Action parameter is required' },
+        { error: 'Some parameters are missing' },
         {
           status: 400,
           headers: {
@@ -103,89 +91,38 @@ export async function POST(req: NextRequest) {
 
     let tx: TransactionSerializable;
 
-    switch (action) {
-      case 'joinChallenge':
-        const amount = depositAmount || '0.01'; // Default 0.01 AVAX
-        
-        const joinData = encodeFunctionData({
-          abi: abi,
-          functionName: 'joinChallenge',
-          args: [],
-        });
-
-        tx = {
-          to: CONTRACT_ADDRESS,
-          data: joinData,
-          value: parseEther(amount),
-          chainId: avalancheFuji.id,
-          type: 'legacy',
-        };
-        break;
-
-      case 'distributeRewards':
-        if (!challengeId || !winnersParam) {
-          return NextResponse.json(
-            { error: 'Challenge ID and winners are required for distributing rewards' },
-            {
-              status: 400,
-              headers: {
-                'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-                'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-              },
-            },
-          );
-        }
-
-        // Parse winners from comma-separated string
-        const winners = winnersParam.split(',').map(addr => addr.trim());
-        
-        // Validate addresses (basic check)
-        for (const winner of winners) {
-          if (!winner.startsWith('0x') || winner.length !== 42) {
-            return NextResponse.json(
-              { error: `Invalid address format: ${winner}` },
-              {
-                status: 400,
-                headers: {
-                  'Access-Control-Allow-Origin': '*',
-                  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-                  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-                },
-              },
-            );
-          }
-        }
-
-        const distributeData = encodeFunctionData({
-          abi: abi,
-          functionName: 'distributeRewards',
-          args: [BigInt(challengeId), winners as `0x${string}`[]],
-        });
-
-        tx = {
-          to: CONTRACT_ADDRESS,
-          data: distributeData,
-          chainId: avalancheFuji.id,
-          type: 'legacy',
-        };
-        break;
-
-      default:
-        return NextResponse.json(
-          { error: 'Invalid action' },
-          {
-            status: 400,
-            headers: {
-              'Access-Control-Allow-Origin': '*',
-              'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-              'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-            },
-          },
-        );
-    }
+    const amount = depositAmount || '0.01'; // Default 0.01 AVAX
+    const joinData = encodeFunctionData({
+      abi: abi,
+      functionName: 'joinChallenge',
+      args: [sahhaIdToBytes32(sahhaId) as `0x${string}`],
+    });
+    tx = {
+      to: CONTRACT_ADDRESS,
+      data: joinData,
+      value: parseEther(amount),
+      chainId: avalancheFuji.id,
+      type: 'legacy',
+    };
 
     const serialized = serialize(tx);
+
+    // Save participation to Supabase
+    // Calculate Monday of the current week (UTC)
+    const now = new Date();
+    const day = now.getUTCDay();
+    const diff = now.getUTCDate() - day + (day === 0 ? -6 : 1); // Monday as start
+    const monday = new Date(now.setUTCDate(diff));
+    monday.setUTCHours(0, 0, 0, 0);
+    const week = monday.toISOString().split('T')[0];
+
+    await supabase.from('participations').insert([
+      {
+        sahha_id: sahhaId,
+        amount: depositAmount,
+        week: week,
+      },
+    ]);
 
     const resp: ExecutionResponse = {
       serializedTransaction: serialized,
