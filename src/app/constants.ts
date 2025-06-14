@@ -1,0 +1,1 @@
+export const STEP_GOAL_THRESHOLD = 1400;
