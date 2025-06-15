@@ -7,7 +7,7 @@ import { abi } from '@/blockchain/abi';
 import { createClient } from '@supabase/supabase-js';
 import { sahhaIdToBytes32 } from '@/app/helpers';
 
-const CONTRACT_ADDRESS = '0x8c33f948a74bfB736bc6De6bE83c1d2113F9BA88';
+const CONTRACT_ADDRESS = '0x42Df84a903bCb218F845F0504771c4C588868c22';
 
 // Setup Supabase client
 const supabase = createClient(
