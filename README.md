@@ -1,36 +1,85 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# StepWise @ Sherry.social Minithon 🏃‍♂️🍒
 
-## Getting Started
+**Step Up Your Game, Win Real Rewards!**
 
-First, run the development server:
+StepWise is a blockchain-powered fitness challenge platform. Join weekly step challenges, deposit funds, and compete for real rewards. Our smart scoring system rewards not just steps, but also activity quality, balance, and consistency. Winners take the pot!
 
+---
+
+## Deployed Smart Contract
+- [0x42Df84a903bCb218F845F0504771c4C588868c22 on Snowtrace (Avalanche Fuji Testnet)](https://testnet.snowtrace.io/address/0x42Df84a903bCb218F845F0504771c4C588868c22)
+
+---
+
+## Key Features 🏅
+- Weekly blockchain fitness challenges
+- Smart scoring: Steps (40%) 👟, Efficiency (30%) 💪, Balance (20%) ⚖️, Consistency (10%) 🔄
+- Real rewards: Winners get the losers' deposits
+- Transparent, automated payouts via smart contract
+- Social, gamified, and fun!
+
+---
+
+## Setup Instructions
+
+### 1. Clone the repo
+```bash
+git clone <this-repo-url>
+cd stepwise
+```
+
+### 2. Install dependencies
+```bash
+npm install
+# or
+yarn install
+```
+
+### 3. Run the Next.js app
 ```bash
 npm run dev
 # or
 yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
+Visit [http://localhost:3000](http://localhost:3000)
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 4. Smart Contract (optional, for devs)
+- Contracts are in `/contracts`
+- Uses [Foundry](https://book.getfoundry.sh/)
+- Deploy scripts and tests included
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 5. Distribute Rewards Script
+To distribute rewards at the end of a challenge, run:
+```bash
+node scripts/distribute-rewards.js
+```
+This script will fetch winners, save results, and trigger the smart contract payout. Make sure your environment variables are set up as required in the script.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+---
 
-## Learn More
+## How to Participate 👟
+1. Connect your wallet
+2. Join the current weekly challenge by depositing funds
+3. Track your steps and activity
+4. At week's end, winners are determined by the smart scoring system
+5. Winners automatically receive rewards to their wallet
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## How Rewards Work 💰
+- All participants deposit funds to join
+- At the end of the week, the smart contract scores all users
+- Winners split the losers' deposits, paid out instantly
+- 100% transparent, no middleman
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+---
 
-## Deploy on Vercel
+## Slogan
+**Step Up Your Game, Win Real Rewards!**
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Closing
+**StepWise: Where Every Step Counts, Every Winner Rewarded.**
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
+
+Made with 🍒 and 🏃‍♂️ for the [sherry.social](https://sherry.social) minithon!
