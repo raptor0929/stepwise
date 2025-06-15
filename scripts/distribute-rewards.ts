@@ -1,8 +1,9 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import fetch from 'node-fetch';
 import { abi } from '../src/blockchain/abi.js';
 import { sahhaIdToBytes32 } from '../src/app/helpers.js';
-import { createPublicClient, createWalletClient, http, getContract } from 'viem';
+import { Account, createPublicClient, createWalletClient, http, PublicClient, WalletClient } from 'viem';
+import { avalancheFuji } from 'viem/chains';
 import { privateKeyToAccount } from 'viem/accounts';
 import dotenv from 'dotenv';
 
@@ -25,7 +26,7 @@ function getCurrentWeekMonday() {
   return monday.toISOString().split('T')[0];
 }
 
-async function getParticipatingUserIds(supabase, week) {
+async function getParticipatingUserIds(supabase: SupabaseClient, week: string) {
   console.log('Querying participations for week:', week);
   const { data, error } = await supabase
     .from('participations')
@@ -37,20 +38,20 @@ async function getParticipatingUserIds(supabase, week) {
   return userIds;
 }
 
-async function getWinners(userIds) {
+async function getWinners(userIds: string[]) {
   console.log('Fetching winners from activity-analysis...');
   const res = await fetch(ACTIVITY_ANALYSIS_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ userIds }),
   });
-  const data = await res.json();
+  const data = await res.json() as { success: boolean, data: { winnerLoserAnalysis: { winners: any[] } } };
   if (!data.success) throw new Error('Failed to get winners: ' + JSON.stringify(data));
   // winners are in data.data.winnerLoserAnalysis.winners (array of PerformanceAnalysis)
   return data.data.winnerLoserAnalysis.winners;
 }
 
-async function savePoints(supabase, winners) {
+async function savePoints(supabase: SupabaseClient, winners: any[]) {
   console.log('Saving winners to Supabase...');
   try {
     const rows = winners.map(w => ({
@@ -65,16 +66,17 @@ async function savePoints(supabase, winners) {
   }
 }
 
-async function distributeRewards(winners, challengeId, walletClient, publicClient) {
+async function distributeRewards(winners: any[], challengeId: bigint, walletClient: WalletClient, publicClient: PublicClient) {
   console.log('Calling distributeRewards on contract...');
   const winnerBytes32 = winners.map(w => sahhaIdToBytes32(w.userId));
 
   const hash = await walletClient.writeContract({
-    address: CONTRACT_ADDRESS,
+    address: CONTRACT_ADDRESS as `0x${string}`,
     abi,
+    chain: avalancheFuji,
     functionName: 'distributeRewards',
     args: [challengeId, winnerBytes32],
-    account: walletClient.account,
+    account: walletClient.account as Account,
   });
   console.log('Transaction sent:', hash);
 
@@ -87,7 +89,7 @@ async function distributeRewards(winners, challengeId, walletClient, publicClien
 async function main() {
   try {
     // 0. Setup
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    const supabase = createClient(SUPABASE_URL as string, SUPABASE_SERVICE_ROLE_KEY as string);
     const week = getCurrentWeekMonday();
     console.log('Week:', week);
 
@@ -109,7 +111,7 @@ async function main() {
     const publicClient = createPublicClient({
       transport: http(PROVIDER_URL),
     });
-    const account = privateKeyToAccount(`0x${PRIVATE_KEY.replace(/^0x/, '')}`);
+    const account = privateKeyToAccount(`0x${PRIVATE_KEY?.replace(/^0x/, '')}`);
     const walletClient = createWalletClient({
       account,
       transport: http(PROVIDER_URL),
@@ -117,7 +119,7 @@ async function main() {
 
     // 5. Get current challengeId
     const challengeId = await publicClient.readContract({
-      address: CONTRACT_ADDRESS,
+      address: CONTRACT_ADDRESS as `0x${string}`,
       abi,
       functionName: 'getCurrentChallengeId',
     });
