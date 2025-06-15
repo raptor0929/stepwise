@@ -2,8 +2,7 @@ import { ActivityFactor, ActivityLog, PerformanceAnalysis, UserActivityData, Win
 import { SahhaApiService } from "./external/SahhaApiService";
 import { WinnerLoserClassificationService } from "./analysis/WinnerLoserClassificationService";
 import { ConsistencyScoringService } from "./scoring/ConsistencyScoringService";
-import { RewardScoringService } from "./scoring/RewardScoringService";
-import { PointsScoringService } from "./scoring/PointsScoringService";
+import { ScoringService } from "./scoring/ScoringService";
 
 export class ActivityAnalysisService {
     /**
@@ -34,8 +33,8 @@ export class ActivityAnalysisService {
             analyses.push(...userAnalyses);
         }
 
-        // Sort by total score
-        analyses.sort((a, b) => b.totalScore - a.totalScore);
+        // Sort by activityScore
+        analyses.sort((a, b) => b.activityScore - a.activityScore);
 
         // Assign ranks
         analyses.forEach((analysis, index) => {
@@ -77,20 +76,16 @@ export class ActivityAnalysisService {
 
         // Extract all factors for aggregation
         const allFactors = logs.map(log => this.extractFactors(log));
-        // For rewardScore and steps-based fields, use steps factor from each log
-        const rewardScores = allFactors.map(f => RewardScoringService.calculateRewardScore(f.steps));
-        const pointsScores = allFactors.map(f => PointsScoringService.calculatePointsScore(f, consistencyBonus));
+        const activityScores = allFactors.map(f => ScoringService.calculateActivityScore(f, consistencyBonus));
         const stepsValues = allFactors.map(f => f.steps?.value || 0);
         const stepsGoalPercentages = allFactors.map(f => f.steps ? (f.steps.value / 7500) * 100 : 0);
-        const efficiencyScores = allFactors.map(f => PointsScoringService['calculateEfficiencyScore'](f));
-        const balanceScores = allFactors.map(f => PointsScoringService['calculateBalanceScore'](f));
+        const efficiencyScores = allFactors.map(f => ScoringService['calculateEfficiencyScore'](f));
+        const balanceScores = allFactors.map(f => ScoringService['calculateBalanceScore'](f));
         const overallScores = logs.map(log => log.score);
-        const totalScores = rewardScores.map((r, i) => r * 0.7 + pointsScores[i] * 0.3);
+        const totalScores = activityScores; // Now totalScore is just activityScore
 
         // Merge insights
-        const stepsInsights = allFactors.flatMap(f => RewardScoringService.generateStepsInsights(f.steps));
-        const pointsInsights = allFactors.flatMap(f => PointsScoringService.generatePointsInsights(f, consistencyBonus));
-        const insights = Array.from(new Set([...stepsInsights, ...pointsInsights]));
+        const insights = allFactors.flatMap(f => ScoringService.generateActivityInsights(f, consistencyBonus));
 
         // Use the week's start date
         const weekStart = (() => {
@@ -106,15 +101,12 @@ export class ActivityAnalysisService {
         const summary: PerformanceAnalysis = {
             userId,
             date: weekStart,
-            overallScore: round2(avg(overallScores)),
-            rewardScore: round2(avg(rewardScores)),
-            pointsScore: round2(avg(pointsScores)),
+            activityScore: round2(avg(activityScores)),
             stepsValue: round2(avg(stepsValues)),
             stepsGoalPercentage: round2(avg(stepsGoalPercentages)),
             efficiencyScore: round2(avg(efficiencyScores)),
             balanceScore: round2(avg(balanceScores)),
             consistencyBonus,
-            totalScore: round2(avg(totalScores)),
             rank: 0, // Will be set later
             classification,
             insights
@@ -139,12 +131,11 @@ export class ActivityAnalysisService {
      */
     private static calculateWinnerStats(winners: PerformanceAnalysis[]) {
         if (winners.length === 0) {
-            return { avgSteps: 0, avgRewardScore: 0, avgPointsScore: 0, topInsights: [] };
+            return { avgSteps: 0, avgActivityScore: 0, topInsights: [] };
         }
 
         const avgSteps = Math.round(winners.reduce((sum, w) => sum + w.stepsValue, 0) / winners.length);
-        const avgRewardScore = Math.round((winners.reduce((sum, w) => sum + w.rewardScore, 0) / winners.length) * 100) / 100;
-        const avgPointsScore = Math.round((winners.reduce((sum, w) => sum + w.pointsScore, 0) / winners.length) * 100) / 100;
+        const avgActivityScore = Math.round((winners.reduce((sum, w) => sum + w.activityScore, 0) / winners.length) * 100) / 100;
 
         const allInsights = winners.flatMap(w => w.insights);
         const insightCounts = new Map<string, number>();
@@ -159,7 +150,7 @@ export class ActivityAnalysisService {
             .slice(0, 3)
             .map(([insight]) => insight);
 
-        return { avgSteps, avgRewardScore, avgPointsScore, topInsights };
+        return { avgSteps, avgActivityScore, topInsights };
     }
 
     /**
@@ -167,29 +158,24 @@ export class ActivityAnalysisService {
      */
     private static calculateLoserStats(losers: PerformanceAnalysis[]) {
         if (losers.length === 0) {
-            return { avgSteps: 0, avgRewardScore: 0, avgPointsScore: 0, commonIssues: [] };
+            return { avgSteps: 0, avgActivityScore: 0, commonIssues: [] };
         }
 
         const avgSteps = Math.round(losers.reduce((sum, l) => sum + l.stepsValue, 0) / losers.length);
-        const avgRewardScore = Math.round((losers.reduce((sum, l) => sum + l.rewardScore, 0) / losers.length) * 100) / 100;
-        const avgPointsScore = Math.round((losers.reduce((sum, l) => sum + l.pointsScore, 0) / losers.length) * 100) / 100;
+        const avgActivityScore = Math.round((losers.reduce((sum, l) => sum + l.activityScore, 0) / losers.length) * 100) / 100;
 
         const commonIssues: string[] = [];
 
         const lowStepsCount = losers.filter(l => l.stepsValue < 5000).length;
-        const lowRewardScoreCount = losers.filter(l => l.rewardScore < 50).length;
-        const lowPointsScoreCount = losers.filter(l => l.pointsScore < 50).length;
+        const lowActivityScoreCount = losers.filter(l => l.activityScore < 50).length;
 
         if (lowStepsCount > losers.length * 0.6) {
             commonIssues.push('Consistently low step counts');
         }
-        if (lowRewardScoreCount > losers.length * 0.6) {
-            commonIssues.push('Poor step performance overall');
-        }
-        if (lowPointsScoreCount > losers.length * 0.6) {
-            commonIssues.push('Low activity quality and balance');
+        if (lowActivityScoreCount > losers.length * 0.6) {
+            commonIssues.push('Low overall activity score');
         }
 
-        return { avgSteps, avgRewardScore, avgPointsScore, commonIssues };
+        return { avgSteps, avgActivityScore, commonIssues };
     }
 }

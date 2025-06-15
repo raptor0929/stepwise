@@ -45,12 +45,6 @@ contract StepWise {
         _;
     }
 
-    modifier challengeEnded(uint256 _challengeId) {
-        (, uint256 endTime) = getChallengeTimeBounds(_challengeId);
-        require(block.timestamp > endTime, "Challenge still active");
-        _;
-    }
-
     constructor() {
         owner = msg.sender;
     }
@@ -106,8 +100,7 @@ contract StepWise {
 
     function distributeRewards(uint256 _challengeId, bytes32[] calldata _winners) 
         external 
-        onlyOwner 
-        challengeEnded(_challengeId) 
+        onlyOwner
     {
         Challenge storage challenge = challenges[_challengeId];
         require(!challenge.rewardsDistributed, "Rewards already distributed");

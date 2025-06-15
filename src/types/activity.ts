@@ -29,15 +29,12 @@ export interface UserActivityData {
 export interface PerformanceAnalysis {
     userId: string;
     date: string;
-    overallScore: number;
-    rewardScore: number;  // Steps-focused score
-    pointsScore: number;  // Other factors score
+    activityScore: number;
     stepsValue: number;
     stepsGoalPercentage: number;
     efficiencyScore: number;
     balanceScore: number;
     consistencyBonus: number;
-    totalScore: number;
     rank: number;
     classification: 'winner' | 'loser';
     insights: string[];
@@ -49,14 +46,12 @@ export interface WinnerLoserAnalysis {
     overallWeeklyAverageSteps: number;
     winnerStats: {
         avgSteps: number;
-        avgRewardScore: number;
-        avgPointsScore: number;
+        avgActivityScore: number;
         topInsights: string[];
     };
     loserStats: {
         avgSteps: number;
-        avgRewardScore: number;
-        avgPointsScore: number;
+        avgActivityScore: number;
         commonIssues: string[];
     };
 }

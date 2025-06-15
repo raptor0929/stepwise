@@ -95,4 +95,46 @@ contract StepWiseTest is Test {
         assertEq(rewardsDistributed, true);
         vm.stopPrank();
     }
+
+    function test_distributeRewards_multiple_winners() public {
+        uint256 challengeId = stepWise.getCurrentChallengeId();
+        // alice joins the challenge
+        vm.prank(alice);
+        console.log("alice address", alice);
+        console.log("alice balance", alice.balance);
+        stepWise.joinChallenge{value: 0.01 ether}(0x00000000000000000000000000000000AF3EA4D5EB5044AC9DBA37F4CE395048);
+        vm.stopPrank();
+        // bob joins the challenge
+        vm.prank(bob);
+        console.log("bob address", bob);
+        console.log("bob balance", bob.balance);
+        stepWise.joinChallenge{value: 0.02 ether}(0x000000000000000000000000000000001D0C697FD20B48FD8658978B970756F9);
+        vm.stopPrank();
+        // alice is the winner
+        bytes32[] memory winners = new bytes32[](2);
+        winners[0] = 0x00000000000000000000000000000000AF3EA4D5EB5044AC9DBA37F4CE395048;
+        winners[1] = 0x000000000000000000000000000000001D0C697FD20B48FD8658978B970756F9;
+        (,,,address winnerAddress1) = stepWise.participants(winners[0]);
+        (,,,address winnerAddress2) = stepWise.participants(winners[1]);
+        console.log("winnerAddress1", winnerAddress1);
+        console.log("winnerAddress2", winnerAddress2);
+        uint256 winnerBalanceBefore1 = winnerAddress1.balance;
+        uint256 winnerBalanceBefore2 = winnerAddress2.balance;
+        console.log("winnerBalanceBefore1", winnerBalanceBefore1);
+        console.log("winnerBalanceBefore2", winnerBalanceBefore2);
+        vm.warp(1749924300 + 7 days);
+        // deployer distributes the rewards
+        vm.prank(address(this));
+        stepWise.distributeRewards(challengeId, winners);
+        uint256 winnerBalanceAfter1 = winnerAddress1.balance;
+        uint256 winnerBalanceAfter2 = winnerAddress2.balance;
+        console.log("winnerBalanceAfter1", winnerBalanceAfter1);
+        console.log("winnerBalanceAfter2", winnerBalanceAfter2);
+        assertEq(winnerBalanceAfter1, winnerBalanceBefore1 + 0.01 ether);
+        assertEq(winnerBalanceAfter2, winnerBalanceBefore2 + 0.02 ether);
+        (, , , , , bool rewardsDistributed) = stepWise.getChallengeInfo(challengeId);
+        console.log("rewardsDistributed", rewardsDistributed);
+        assertEq(rewardsDistributed, true);
+        vm.stopPrank();
+    }
 }
